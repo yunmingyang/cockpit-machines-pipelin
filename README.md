@@ -1,1 +1,1 @@
-# cockpit-machines-pipelin
+# cockpit-machines-pipeline
