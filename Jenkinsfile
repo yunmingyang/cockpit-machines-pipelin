@@ -8,6 +8,7 @@ def testSuiteResultPath
 def enableVenv = String.format("source %s/cockpit-venv/bin/activate && ",
                                HOME)
 def linchpinWorkspace = String.format("%s/linchpin-workspace", HOME)
+def exceptionList = new LinkedList<Exception>()
 
 
 @NonCPS
@@ -76,25 +77,40 @@ node('jslave-cockpit-machines'){
         sh(script: "npm install")
     }
 
-    stage("Run test"){
+    stage("Run test on chrome"){
         println("---------------------check browsers versions---------------------")
         sh(script: "google-chrome --version && firefox --version")
-        println("-----------------------------------------------------------------")
 
         print("--------------------run verify-* test on chrome--------------------")
         def runCmd = String.format("test/verify/check-machines --machine=%s | tee %s",
                                    "10.73.131.87",
                                    testSuiteResultPath + "/chrome.log")
-        sh(script: runCmd)
-        
+        try{
+            sh(script: runCmd)
+        } catch(e){
+            exceptionList.add(e)
+        }
+
         print("-------------------run verify-* test on firefox--------------------")
         runCmd = String.format("TEST_BROWSER=firefox test/verify/check-machines --machine=%s | tee %s",
                                "10.73.131.87",
                                testSuiteResultPath + "/firefox.log")
-        sh(script: runCmd)
+        try{
+            sh(script: runCmd)
+        } catch(e){
+            exceptionList.add(e)
+        }
     }
 
     stage("Upload"){
+        if(exceptionList){
+            def throwingExc = new Exception('these exception are throwed')
+            for(Exception e: exceptionList){
+                throwingExc.addSuppressed(e)
+            }
+            throw throwingExc
+        }
+        
         println("upload")
     }
 }
