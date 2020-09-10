@@ -77,7 +77,7 @@ node('jslave-cockpit-machines'){
         sh(script: "npm install")
     }
 
-    stage("Run test on chrome"){
+    stage("Run testsuite"){
         println("---------------------check browsers versions---------------------")
         sh(script: "google-chrome --version && firefox --version")
 
@@ -110,7 +110,7 @@ node('jslave-cockpit-machines'){
             }
             throw throwingExc
         }
-        
+
         println("upload")
     }
 }
