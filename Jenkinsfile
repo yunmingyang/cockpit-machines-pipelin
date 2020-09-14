@@ -81,7 +81,7 @@ node('jslave-cockpit-machines'){
         println("---------------------check browsers versions---------------------")
         sh(script: "google-chrome --version && firefox --version")
 
-        if (!fileExists(testSuiteResultPath)){
+        if (!fileExists(file: testSuiteResultPath)){
             throw new Exception("no testSuiteResultPath")
         }
 
