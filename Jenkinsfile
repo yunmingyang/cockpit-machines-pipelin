@@ -31,7 +31,6 @@ node('jslave-cockpit-machines'){
         currentBuild.description = "Compose is " + composeId
 
         testSuiteResultPath = String.format(WORKSPACE + "/%s_" + RandomStringUtils.random(5, true, true), composeId)
-        sh(script: "mkdir " + testSuiteResultPath)
         println("testSuiteResultPath is " + testSuiteResultPath)
 
         def pinFile = readYaml(file: linchpinWorkspace + "/PinFile")
@@ -82,24 +81,32 @@ node('jslave-cockpit-machines'){
         println("---------------------check browsers versions---------------------")
         sh(script: "google-chrome --version && firefox --version")
 
-        print("--------------------run verify-* test on chrome--------------------")
-        def runCmd = String.format("test/verify/check-machines --machine=%s | tee %s",
-                                   "10.73.131.87",
-                                   testSuiteResultPath + "/chrome.log")
-        try{
-            sh(script: runCmd)
-        } catch(e){
-            exceptionList.add(e)
+        if (!fileExists(testSuiteResultPath)){
+            throw new Exception("no testSuiteResultPath")
         }
 
-        print("-------------------run verify-* test on firefox--------------------")
-        runCmd = String.format("TEST_BROWSER=firefox test/verify/check-machines --machine=%s | tee %s",
-                               "10.73.131.87",
-                               testSuiteResultPath + "/firefox.log")
-        try{
-            sh(script: runCmd)
-        } catch(e){
-            exceptionList.add(e)
+        dir(testSuiteResultPath){
+            print("--------------------run verify-* test on chrome--------------------")
+            def runCmd = String.format("%s/test/verify/check-machines --machine=%s | tee %s",
+                                        WORKSPACE,
+                                        "10.73.131.87",
+                                        "/chrome.log")
+            try{
+                sh(script: runCmd)
+            } catch(e){
+                exceptionList.add(e)
+            }
+
+            print("-------------------run verify-* test on firefox--------------------")
+            runCmd = String.format("TEST_BROWSER=firefox %s/test/verify/check-machines --machine=%s | tee %s",
+                                    WORKSPACE,
+                                    "10.73.131.87",
+                                    "firefox.log")
+            try{
+                sh(script: runCmd)
+            } catch(e){
+                exceptionList.add(e)
+            }
         }
     }
 
