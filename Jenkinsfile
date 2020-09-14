@@ -31,6 +31,7 @@ node('jslave-cockpit-machines'){
         currentBuild.description = "Compose is " + composeId
 
         testSuiteResultPath = String.format(WORKSPACE + "/%s_" + RandomStringUtils.random(5, true, true), composeId)
+        sh(script: "mkdir " + testSuiteResultPath)
         println("testSuiteResultPath is " + testSuiteResultPath)
 
         def pinFile = readYaml(file: linchpinWorkspace + "/PinFile")
