@@ -90,7 +90,7 @@ node('jslave-cockpit-machines'){
             def runCmd = String.format("%s/test/verify/check-machines --machine=%s | tee %s",
                                         WORKSPACE,
                                         "10.73.131.87",
-                                        "/chrome.log")
+                                        "chrome.log")
             try{
                 sh(script: runCmd)
             } catch(e){
