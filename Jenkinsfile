@@ -81,10 +81,6 @@ node('jslave-cockpit-machines'){
         println("---------------------check browsers versions---------------------")
         sh(script: "google-chrome --version && firefox --version")
 
-        if (!fileExists(file: testSuiteResultPath)){
-            throw new Exception("no testSuiteResultPath")
-        }
-
         dir(testSuiteResultPath){
             print("--------------------run verify-* test on chrome--------------------")
             def runCmd = String.format("%s/test/verify/check-machines --machine=%s | tee %s",
