@@ -81,28 +81,26 @@ node('jslave-cockpit-machines'){
         println("---------------------check browsers versions---------------------")
         sh(script: "google-chrome --version && firefox --version")
 
-        dir(testSuiteResultPath){
-            print("--------------------run verify-* test on chrome--------------------")
-            def runCmd = String.format("%s/test/verify/check-machines --machine=%s | tee %s",
-                                        WORKSPACE,
-                                        "10.73.131.87",
-                                        "chrome.log")
-            try{
-                sh(script: runCmd)
-            } catch(e){
-                exceptionList.add(e)
-            }
-
-            print("-------------------run verify-* test on firefox--------------------")
-            runCmd = String.format("TEST_BROWSER=firefox %s/test/verify/check-machines --machine=%s | tee %s",
+        print("--------------------run verify-* test on chrome--------------------")
+        def runCmd = String.format("%s/test/verify/check-machines --machine=%s | tee %s",
                                     WORKSPACE,
                                     "10.73.131.87",
-                                    "firefox.log")
-            try{
-                sh(script: runCmd)
-            } catch(e){
-                exceptionList.add(e)
-            }
+                                    "chrome.log")
+        try{
+            sh(script: runCmd)
+        } catch(e){
+            exceptionList.add(e)
+        }
+
+        print("-------------------run verify-* test on firefox--------------------")
+        runCmd = String.format("TEST_BROWSER=firefox %s/test/verify/check-machines --machine=%s | tee %s",
+                                WORKSPACE,
+                                "10.73.131.87",
+                                "firefox.log")
+        try{
+            sh(script: runCmd)
+        } catch(e){
+            exceptionList.add(e)
         }
     }
 
