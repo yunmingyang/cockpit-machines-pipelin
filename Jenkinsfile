@@ -74,7 +74,7 @@ node('jslave-cockpit-machines'){
     }
 
     stage("Npm install"){
-        sh(script: "npm install")
+        sh(script: "npm cache clean --force && npm install")
     }
 
     stage("Run testsuite"){
