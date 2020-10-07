@@ -30,6 +30,7 @@ node('jslave-cockpit-machines'){
         currentBuild.description = "Compose is " + composeId
 
         testSuiteResultPath = String.format(WORKSPACE + "/%s_" + RandomStringUtils.random(5, true, true), composeId)
+        sh(script: String.format("mkdir %s", testSuiteResultPath))
         println("testSuiteResultPath is " + testSuiteResultPath)
 
         def pinFile = readYaml(file: linchpinWorkspace + "/PinFile")
@@ -84,7 +85,7 @@ node('jslave-cockpit-machines'){
         def runCmd = String.format("%s/test/verify/check-machines --machine=%s | tee %s",
                                     WORKSPACE,
                                     "10.73.131.87",
-                                    "chrome.log")
+                                    testSuiteResultPath + "chrome.log")
         try{
             sh(script: runCmd)
         } catch(e){
@@ -95,7 +96,7 @@ node('jslave-cockpit-machines'){
         runCmd = String.format("TEST_BROWSER=firefox %s/test/verify/check-machines --machine=%s | tee %s",
                                 WORKSPACE,
                                 "10.73.131.87",
-                                "firefox.log")
+                                testSuiteResultPath + "firefox.log")
         try{
             sh(script: runCmd)
         } catch(e){
@@ -117,11 +118,8 @@ node('jslave-cockpit-machines'){
                                     WORKSPACE,
                                     composeId,
                                     RandomStringUtils.random(5, true, true))
-        def cmd = String.format("mkdir %s && mv %s/*.log %s && scp -r %s root@%s:%s",
-                                resPath,
-                                WORKSPACE,
-                                resPath,
-                                resPath,
+        def cmd = String.format("scp -r %s root@%s:%s",
+                                testSuiteResultPath,
                                 RES_HOST,
                                 RES_PATH)
         sh(script: cmd)
