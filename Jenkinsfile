@@ -4,6 +4,7 @@ import org.apache.commons.lang3.RandomStringUtils
 
 
 def guest
+def composeId
 def testSuiteResultPath
 def enableVenv = String.format("source %s/cockpit-venv/bin/activate && ",
                                HOME)
@@ -20,14 +21,12 @@ String getInvertoriesPath(String log){
     return m.group().split("\\s")[1].trim().replaceAll("\"", "")
 }
 
-// TODO: upload results
-// TODO: update browsers(chrome)
 node('jslave-cockpit-machines'){
 
     stage("Pre-operations"){
         println("Linchpin Workspace is " + linchpinWorkspace)
 
-        def composeId = COMPOSE_ID ? COMPOSE_ID : readJSON(text: CI_MESSAGE)['msg']['compose_id']
+        composeId = COMPOSE_ID ? COMPOSE_ID : readJSON(text: CI_MESSAGE)['msg']['compose_id']
         currentBuild.description = "Compose is " + composeId
 
         testSuiteResultPath = String.format(WORKSPACE + "/%s_" + RandomStringUtils.random(5, true, true), composeId)
@@ -113,6 +112,18 @@ node('jslave-cockpit-machines'){
             throw throwingExc
         }
 
-        println("upload")
+        input("upload?")
+        def resPath = String.format("%s/%s_%s",
+                                    WORKSPACE,
+                                    composeId,
+                                    RandomStringUtils.random(5, true, true))
+        def cmd = String.format("mkdir %s && mv %s/*.log %s && scp -r %s root@%s:%s",
+                                resPath,
+                                WORKSPACE,
+                                resPath,
+                                resPath,
+                                RES_HOST,
+                                RES_PATH)
+        sh(script: cmd)
     }
 }
