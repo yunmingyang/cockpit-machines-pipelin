@@ -74,9 +74,9 @@ node('jslave-cockpit-machines'){
     }
 
     stage("Npm install"){
-        def npmCMD = String.format("npm cache clean --force && npm --resgistry %s install", NPM_REGISTRY)
-        
-        sh(script: npmCMD)
+        def registry = NPM_REGISTRY ? " --registry " + NPM_REGISTRY : "" 
+
+        sh(script: "npm clean cache --force && npm install" + registry)
     }
 
     stage("Run testsuite"){
