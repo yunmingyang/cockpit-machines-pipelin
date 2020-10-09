@@ -29,10 +29,6 @@ node('jslave-cockpit-machines'){
         composeId = COMPOSE_ID ? COMPOSE_ID : readJSON(text: CI_MESSAGE)['compose_id']
         currentBuild.description = "Compose is " + composeId
 
-        testSuiteResultPath = String.format(WORKSPACE + "/%s_" + RandomStringUtils.random(5, true, true), composeId)
-        sh(script: String.format("mkdir %s", testSuiteResultPath))
-        println("testSuiteResultPath is " + testSuiteResultPath)
-
         def pinFile = readYaml(file: linchpinWorkspace + "/PinFile")
         pinFile['cockpit-machines']['topology']['resource_groups'][0]['resource_definitions'][0]['recipesets'][0]['distro'] = composeId
         if (fileExists(file: linchpinWorkspace + "/PinFile")){
@@ -53,6 +49,7 @@ node('jslave-cockpit-machines'){
     
     stage("Clone"){
         deleteDir()
+
         checkout([
                 $class: 'GitSCM',
                 branches: [[name: 'rhel-8.3-verify']],
@@ -80,14 +77,19 @@ node('jslave-cockpit-machines'){
     }
 
     stage("Run testsuite"){
-        println("---------------------check browsers versions---------------------")
+        println("--------------------check browsers versions----------------------")
         sh(script: "google-chrome --version && firefox --version")
+
+        println("c------------------create results directory----------------------")
+        testSuiteResultPath = String.format(WORKSPACE + "/%s_" + RandomStringUtils.random(5, true, true), composeId)
+        sh(script: String.format("mkdir %s", testSuiteResultPath))
+        println("testSuiteResultPath is " + testSuiteResultPath)
 
         print("--------------------run verify-* test on chrome--------------------")
         def runCmd = String.format("%s/test/verify/check-machines --machine=%s | tee %s",
                                     WORKSPACE,
                                     "10.73.131.87",
-                                    testSuiteResultPath + "chrome.log")
+                                    testSuiteResultPath + "/chrome.log")
         try{
             sh(script: runCmd)
         } catch(e){
@@ -98,7 +100,7 @@ node('jslave-cockpit-machines'){
         runCmd = String.format("TEST_BROWSER=firefox %s/test/verify/check-machines --machine=%s | tee %s",
                                 WORKSPACE,
                                 "10.73.131.87",
-                                testSuiteResultPath + "firefox.log")
+                                testSuiteResultPath + "/firefox.log")
         try{
             sh(script: runCmd)
         } catch(e){
