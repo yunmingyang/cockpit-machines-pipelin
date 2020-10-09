@@ -26,7 +26,7 @@ node('jslave-cockpit-machines'){
     stage("Pre-operations"){
         println("Linchpin Workspace is " + linchpinWorkspace)
 
-        composeId = COMPOSE_ID ? COMPOSE_ID : readJSON(text: CI_MESSAGE)['msg']['compose_id']
+        composeId = COMPOSE_ID ? COMPOSE_ID : readJSON(text: CI_MESSAGE)['compose_id']
         currentBuild.description = "Compose is " + composeId
 
         testSuiteResultPath = String.format(WORKSPACE + "/%s_" + RandomStringUtils.random(5, true, true), composeId)
@@ -76,7 +76,7 @@ node('jslave-cockpit-machines'){
     stage("Npm install"){
         def registry = NPM_REGISTRY ? " --registry " + NPM_REGISTRY : "" 
 
-        sh(script: "npm clean cache --force && npm install" + registry)
+        sh(script: "npm cache clean --force && npm install" + registry)
     }
 
     stage("Run testsuite"){
