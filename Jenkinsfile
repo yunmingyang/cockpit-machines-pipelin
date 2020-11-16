@@ -45,6 +45,7 @@ node('jslave-cockpit-machines'){
         def output = sh(script: linchpinCmd, returnStdout: true)
         def invertoryData = readFile(file: getInvertoriesPath(output), encoding: "UTF-8")
         guest = InetAddress.getByName(invertoryData.split("all")[-1].split("]")[-1].split("=")[-1].trim()).getHostAddress()
+        println("Guest ip address is " + guest)
     }
     
     stage("Clone"){
@@ -52,7 +53,7 @@ node('jslave-cockpit-machines'){
 
         checkout([
                 $class: 'GitSCM',
-                branches: [[name: 'rhel-8.3-verify']],
+                branches: [[name: AUTO_BRANCH]],
                 userRemoteConfigs: [[url: 'https://github.com/yunmingyang/cockpit.git']],
                 extensions: [
                     [$class: 'CloneOption', shallow: true, noTags: true, depth: 1, timeout: 30]
@@ -88,7 +89,7 @@ node('jslave-cockpit-machines'){
         print("--------------------run verify-* test on chrome--------------------")
         def runCmd = String.format("%s/test/verify/check-machines --machine=%s | tee %s",
                                     WORKSPACE,
-                                    "10.73.131.87",
+                                    guest,
                                     testSuiteResultPath + "/chrome.log")
         try{
             sh(script: runCmd)
@@ -99,7 +100,7 @@ node('jslave-cockpit-machines'){
         print("-------------------run verify-* test on firefox--------------------")
         runCmd = String.format("TEST_BROWSER=firefox %s/test/verify/check-machines --machine=%s | tee %s",
                                 WORKSPACE,
-                                "10.73.131.87",
+                                guest,
                                 testSuiteResultPath + "/firefox.log")
         try{
             sh(script: runCmd)
