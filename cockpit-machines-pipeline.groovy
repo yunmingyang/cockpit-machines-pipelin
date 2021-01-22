@@ -28,32 +28,37 @@ node('jslave-cockpit-machines'){
 
         composeId = COMPOSE_ID ? COMPOSE_ID : readJSON(text: CI_MESSAGE)['compose_id']
         currentBuild.description = "Compose is " + composeId
-
-        def pinFile = readYaml(file: linchpinWorkspace + "/PinFile")
-        pinFile['cockpit-machines']['topology']['resource_groups'][0]['resource_definitions'][0]['recipesets'][0]['distro'] = composeId
-        if (fileExists(file: linchpinWorkspace + "/PinFile")){
-            sh(script: "rm -f " + linchpinWorkspace + "/PinFile")
-        }
-        writeYaml(file: linchpinWorkspace + "/PinFile", data: pinFile)
     }
-    
+
     stage("Provision"){
-        def linchpinCmd = String.format("%slinchpin -vvv -c %s -w %s up",
+        def templateVar = String.format("--template-data { distro: %s, arch: %s }",
+                                        composeId,
+                                        ARCH)
+
+        def linchpinCmd = String.format("%slinchpin -vvv -c %s -w %s %s up",
                                         enableVenv,
                                         linchpinWorkspace + "/linchpin.conf",
+                                        templateVar,
                                         linchpinWorkspace)
         def output = sh(script: linchpinCmd, returnStdout: true)
         def invertoryData = readFile(file: getInvertoriesPath(output), encoding: "UTF-8")
         guest = InetAddress.getByName(invertoryData.split("all")[-1].split("]")[-1].split("=")[-1].trim()).getHostAddress()
         println("Guest ip address is " + guest)
     }
-    
+
     stage("Clone"){
         deleteDir()
+        def autoBranch = "rhel-" + AUTO_BRANCH_VERSION + "-"
+        if (ARCH == "x86_64"){
+            autoBranch += "verify"
+        }else{
+            autoBranch += ARCH
+        }
+        println("auto branch is :" + autoBranch)
 
         checkout([
                 $class: 'GitSCM',
-                branches: [[name: AUTO_BRANCH]],
+                branches: [[name: autoBranch]],
                 userRemoteConfigs: [[url: 'https://github.com/yunmingyang/cockpit.git']],
                 extensions: [
                     [$class: 'CloneOption', shallow: true, noTags: true, depth: 1, timeout: 30]
@@ -81,9 +86,9 @@ node('jslave-cockpit-machines'){
         println("--------------------check browsers versions----------------------")
         sh(script: "google-chrome --version && firefox --version")
 
-        println("c------------------create results directory----------------------")
-        testSuiteResultPath = String.format(WORKSPACE + "/%s_" + RandomStringUtils.random(5, true, true), composeId)
-        sh(script: String.format("mkdir %s", testSuiteResultPath))
+        println("--------------------create results directory----------------------")
+        testSuiteResultPath = WORKSPACE + "/" + composeId + "_" + RandomStringUtils.random(5, true, true) + "_" + ARCH
+        sh(script: "mkdir " + testSuiteResultPath)
         println("testSuiteResultPath is " + testSuiteResultPath)
 
         print("--------------------run verify-* test on chrome--------------------")
@@ -110,6 +115,17 @@ node('jslave-cockpit-machines'){
     }
 
     stage("Upload"){
+        def cmd = String.format("scp -r %s root@%s:%s",
+                                testSuiteResultPath,
+                                RES_HOST,
+                                RES_PATH)
+        sh(script: cmd)
+
+        def resURL = String.format("http://%s/results/iscsi/cockpit-machines/%s",
+                                   RES_HOST,
+                                   testSuiteResultPath.split("/")[-1])
+        println("-------------------please check the log at " + resURL + "--------------------")
+
         if(exceptionList){
             def throwingExc = new Exception('these exception are throwed')
             for(Exception e: exceptionList){
@@ -117,16 +133,5 @@ node('jslave-cockpit-machines'){
             }
             throw throwingExc
         }
-
-        input("upload?")
-        def resPath = String.format("%s/%s_%s",
-                                    WORKSPACE,
-                                    composeId,
-                                    RandomStringUtils.random(5, true, true))
-        def cmd = String.format("scp -r %s root@%s:%s",
-                                testSuiteResultPath,
-                                RES_HOST,
-                                RES_PATH)
-        sh(script: cmd)
     }
 }
