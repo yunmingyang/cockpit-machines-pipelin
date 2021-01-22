@@ -31,15 +31,12 @@ node('jslave-cockpit-machines'){
     }
 
     stage("Provision"){
-        def templateVar = String.format("--template-data { distro: %s, arch: %s }",
-                                        composeId,
-                                        ARCH)
-
-        def linchpinCmd = String.format("%slinchpin -vvv -c %s -w %s %s up",
+        def linchpinCmd = String.format("%slinchpin -vvv -c %s -w %s --template-data \"{ 'distro': '%s', 'arch': '%s'}\" up",
                                         enableVenv,
                                         linchpinWorkspace + "/linchpin.conf",
                                         linchpinWorkspace,
-                                        templateVar,)
+                                        composeId,
+                                        ARCH)
         def output = sh(script: linchpinCmd, returnStdout: true)
         def invertoryData = readFile(file: getInvertoriesPath(output), encoding: "UTF-8")
         guest = InetAddress.getByName(invertoryData.split("all")[-1].split("]")[-1].split("=")[-1].trim()).getHostAddress()
