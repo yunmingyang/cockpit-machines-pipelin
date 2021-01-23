@@ -7,8 +7,8 @@ def guest
 def composeId
 def testSuiteResultPath
 def enableVenv = String.format("source %s/cockpit-venv/bin/activate",
-                               HOME)
-def linchpinWorkspace = String.format("%s/linchpin-workspace", HOME)
+                               TOOLS_HOME)
+def linchpinWorkspace = String.format("%s/linchpin-workspace", TOOLS_HOME)
 def exceptionList = new LinkedList<Exception>()
 
 
@@ -22,6 +22,9 @@ String getInvertoriesPath(String log){
 }
 
 node('jslave-cockpit-machines'){
+    ansiColor('xterm'){
+        println('\033[31m--------------------enable ansiColor with xterm----------------------\033[0m')
+    }
 
     stage("Pre-operations"){
         println("Linchpin Workspace is " + linchpinWorkspace)
@@ -38,6 +41,10 @@ node('jslave-cockpit-machines'){
                                         composeId,
                                         ARCH)
         def output = sh(script: linchpinCmd, returnStdout: true)
+        println("\033[31m--------------------print output after running command----------------------\033[0m")
+        println(output)
+        println("\033[31m--------------------finished.----------------------\033[0m")
+
         def invertoryData = readFile(file: getInvertoriesPath(output), encoding: "UTF-8")
         guest = InetAddress.getByName(invertoryData.split("all")[-1].split("]")[-1].split("=")[-1].trim()).getHostAddress()
         println("Guest ip address is " + guest)
@@ -126,11 +133,9 @@ node('jslave-cockpit-machines'){
         println("please check the log at " + resURL)
 
         if(exceptionList){
-            def throwingExc = new Exception('these exception are throwed')
             for(Exception e: exceptionList){
-                throwingExc.addSuppressed(e)
+                println("\033[31msomething failed when running test, here is some information: " + e.getMessage() + "\033[0m")
             }
-            throw throwingExc
         }
     }
 }
