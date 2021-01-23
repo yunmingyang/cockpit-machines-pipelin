@@ -23,7 +23,7 @@ String getInvertoriesPath(String log){
 
 node('jslave-cockpit-machines'){
     ansiColor('xterm'){
-        println('\033[31m--------------------enable ansiColor with xterm----------------------\033[0m')
+        println('\033[1;31m--------------------enable ansiColor with xterm----------------------\033[0m')
     }
 
     stage("Pre-operations"){
@@ -41,9 +41,9 @@ node('jslave-cockpit-machines'){
                                         composeId,
                                         ARCH)
         def output = sh(script: linchpinCmd, returnStdout: true)
-        println("\033[31m--------------------print output after running command----------------------\033[0m")
+        println("\033[1;31m--------------------print output after running command----------------------\033[0m")
         println(output)
-        println("\033[31m--------------------finished.----------------------\033[0m")
+        println("\033[1;31m--------------------finished.----------------------\033[0m")
 
         def invertoryData = readFile(file: getInvertoriesPath(output), encoding: "UTF-8")
         guest = InetAddress.getByName(invertoryData.split("all")[-1].split("]")[-1].split("=")[-1].trim()).getHostAddress()
@@ -134,7 +134,7 @@ node('jslave-cockpit-machines'){
 
         if(exceptionList){
             for(Exception e: exceptionList){
-                println("\033[31msomething failed when running test, here is some information: " + e.getMessage() + "\033[0m")
+                println("\033[1;31mSomething failed when running test, here is some information: " + e.getMessage() + "\033[0m")
             }
         }
     }
