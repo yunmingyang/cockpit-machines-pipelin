@@ -6,7 +6,7 @@ import org.apache.commons.lang3.RandomStringUtils
 def guest
 def composeId
 def testSuiteResultPath
-def enableVenv = String.format("source %s/cockpit-venv/bin/activate && ",
+def enableVenv = String.format("source %s/cockpit-venv/bin/activate",
                                HOME)
 def linchpinWorkspace = String.format("%s/linchpin-workspace", HOME)
 def exceptionList = new LinkedList<Exception>()
@@ -31,7 +31,7 @@ node('jslave-cockpit-machines'){
     }
 
     stage("Provision"){
-        def linchpinCmd = String.format("%slinchpin -vvvv -c %s -w %s --template-data '{ \"distro\": \"%s\", \"arch\": \"%s\"}' up",
+        def linchpinCmd = String.format("%s && linchpin -vvvv -c %s -w %s --template-data '{ \"distro\": \"%s\", \"arch\": \"%s\"}' up",
                                         enableVenv,
                                         linchpinWorkspace + "/linchpin.conf",
                                         linchpinWorkspace,
@@ -123,7 +123,7 @@ node('jslave-cockpit-machines'){
         def resURL = String.format("http://%s/results/iscsi/cockpit-machines/%s",
                                    RES_HOST,
                                    testSuiteResultPath.split("/")[-1])
-        println("-------------------please check the log at " + resURL + "--------------------")
+        println("please check the log at " + resURL)
 
         if(exceptionList){
             def throwingExc = new Exception('these exception are throwed')
