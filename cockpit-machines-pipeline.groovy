@@ -33,7 +33,7 @@ node('jslave-cockpit-machines'){
     }
 
     stage("Provision"){
-        def linchpinCmd = String.format("%s && linchpin -vvvv -c %s -w %s --template-data '{ \"distro\": \"%s\", \"arch\": \"%s\"}' up",
+        def linchpinCmd = String.format("%s && linchpin -vvvv -c %s -w %s --template-data '{ \"distro\": \"%s\", \"arch\": \"%s\" }' up",
                                         enableVenv,
                                         linchpinWorkspace + "/linchpin.conf",
                                         linchpinWorkspace,
