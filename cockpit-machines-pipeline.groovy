@@ -9,14 +9,13 @@ def testSuiteResultPath
 def enableVenv = String.format("source %s/cockpit-venv/bin/activate",
                                TOOLS_HOME)
 def linchpinWorkspace = String.format("%s/linchpin-workspace", TOOLS_HOME)
-def exceptionList = new LinkedList<Exception>()
 
 
 @NonCPS
 String getInvertoriesPath(String log){
     Matcher m = Pattern.compile("\"inventory_path\":\\s\".*\"").matcher(log)
     if(!m.find()){
-        throw new Exception("no such string")
+        throw new Exception("can not find invertory path")
     }
     return m.group().split("\\s")[1].trim().replaceAll("\"", "")
 }
@@ -101,11 +100,7 @@ node('jslave-cockpit-machines'){
                                    WORKSPACE,
                                    guest,
                                    testSuiteResultPath + "/chrome.log")
-        try{
-            sh(script: runCmd)
-        } catch(e){
-            exceptionList.add(e)
-        }
+        sh(script: runCmd)
 
         print("-------------------run verify-* test on firefox--------------------")
         runCmd = String.format("%s && TEST_BROWSER=firefox %s/test/verify/check-machines --machine=%s | tee %s",
@@ -113,11 +108,7 @@ node('jslave-cockpit-machines'){
                                WORKSPACE,
                                guest,
                                testSuiteResultPath + "/firefox.log")
-        try{
-            sh(script: runCmd)
-        } catch(e){
-            exceptionList.add(e)
-        }
+        sh(script: runCmd)
     }
 
     stage("Upload"){
@@ -131,11 +122,5 @@ node('jslave-cockpit-machines'){
                                    RES_HOST,
                                    testSuiteResultPath.split("/")[-1])
         println("please check the log at " + resURL)
-
-        if(exceptionList){
-            for(Exception e: exceptionList){
-                println("\033[1;31mSomething failed when running test, here is some information: " + e.getMessage() + "\033[0m")
-            }
-        }
     }
 }
