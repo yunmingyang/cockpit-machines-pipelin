@@ -32,6 +32,27 @@ node('jslave-cockpit-machines'){
         currentBuild.description = "Compose is " + composeId
     }
 
+    stage("Check existence of the distro"){
+        def outputCheck = 1
+        def count = 0
+        def checkCmd = enableVenv + " && bkr distros-list --name=" + composeId
+        while(true){
+            count++
+            println("\033[1;31mThis is the " + count + " time\033[0m")
+
+            outputCheck = sh(script: checkCmd, returnStatus: true)
+            if (outputCheck == 0){
+                break
+            }else{
+                sleep(60)
+            }
+
+            if (count == 4320){
+                error("\033[1;31mNo such distro\033[0m")
+            }
+        }
+    }
+
     stage("Provision"){
         def linchpinCmd = String.format("%s && linchpin -vvvv -c %s -w %s --template-data '{ \"distro\": \"%s\", \"arch\": \"%s\" }' up",
                                         enableVenv,
