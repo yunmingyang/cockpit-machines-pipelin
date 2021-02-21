@@ -111,7 +111,7 @@ node('jslave-cockpit-machines'){
         sh(script: "google-chrome --version && firefox --version")
 
         println("--------------------create results directory----------------------")
-        testSuiteResultPath = WORKSPACE + "/" + composeId + "_" + RandomStringUtils.random(5, true, true) + "_" + ARCH
+        testSuiteResultPath = WORKSPACE + "/" + composeId + "_" + ARCH + "_" + RandomStringUtils.random(10, true, true)
         sh(script: "mkdir " + testSuiteResultPath)
         println("testSuiteResultPath is " + testSuiteResultPath)
 
