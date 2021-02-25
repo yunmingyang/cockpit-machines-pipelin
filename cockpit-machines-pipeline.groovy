@@ -103,7 +103,7 @@ node('jslave-cockpit-machines'){
     stage("Npm install"){
         def registry = NPM_REGISTRY ? " --registry " + NPM_REGISTRY : "" 
 
-        sh(script: "npm install" + registry)
+        sh(script: "npm install --loglevel verbose" + registry)
     }
 
     stage("Run testsuite"){
