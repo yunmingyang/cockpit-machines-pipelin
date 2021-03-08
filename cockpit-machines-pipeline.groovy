@@ -116,16 +116,18 @@ node('jslave-cockpit-machines'){
         println("testSuiteResultPath is " + testSuiteResultPath)
 
         print("--------------------run verify-* test on chrome--------------------")
-        def runCmd = String.format("%s && %s/test/verify/check-machines --machine=%s | tee %s",
+        def runCmd = String.format("%s && TEST_OS=%s %s/test/verify/check-machines --machine=%s | tee %s",
                                    enableVenv,
+                                   OS,
                                    WORKSPACE,
                                    guest,
                                    testSuiteResultPath + "/chrome.log")
         sh(script: runCmd)
 
         print("-------------------run verify-* test on firefox--------------------")
-        runCmd = String.format("%s && TEST_BROWSER=firefox %s/test/verify/check-machines --machine=%s | tee %s",
+        runCmd = String.format("%s && TEST_OS=%s TEST_OS=rhel-8-4 TEST_BROWSER=firefox %s/test/verify/check-machines --machine=%s | tee %s",
                                enableVenv,
+                               OS,
                                WORKSPACE,
                                guest,
                                testSuiteResultPath + "/firefox.log")
