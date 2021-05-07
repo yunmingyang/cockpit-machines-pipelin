@@ -20,13 +20,17 @@ String getInvertoriesPath(String log){
     return m.group().split("\\s")[1].trim().replaceAll("\"", "")
 }
 
+String strWColor(String str){
+    return "\033[1;31m" + str + "\033[0m")
+}
+
 node('jslave-cockpit-machines'){
     ansiColor('xterm'){
-        println('\033[1;31m--------------------enable ansiColor with xterm----------------------\033[0m')
+        println(strWColor("--------------------enable ansiColor with xterm----------------------"))
     }
 
     stage("Pre-operations"){
-        println("Linchpin Workspace is " + linchpinWorkspace)
+        println(strWColor("Linchpin Workspace is " + linchpinWorkspace))
 
         composeId = COMPOSE_ID ? COMPOSE_ID : readJSON(text: CI_MESSAGE)['compose_id']
         currentBuild.description = "Compose is " + composeId
@@ -38,7 +42,7 @@ node('jslave-cockpit-machines'){
         def checkCmd = enableVenv + " && bkr distros-list --name=" + composeId
         while(true){
             count++
-            println("\033[1;31mThis is the " + count + " time\033[0m")
+            println(strWColor("This is the " + count + " time"))
 
             outputCheck = sh(script: checkCmd, returnStatus: true)
             if (outputCheck == 0){
@@ -48,7 +52,7 @@ node('jslave-cockpit-machines'){
             }
 
             if (count == 4320){
-                error("\033[1;31mNo such distro\033[0m")
+                error(strWColor("No such distro"))
             }
         }
     }
@@ -61,77 +65,71 @@ node('jslave-cockpit-machines'){
                                         composeId,
                                         ARCH)
         def output = sh(script: linchpinCmd, returnStdout: true)
-        println("\033[1;31m--------------------print output after running command----------------------\033[0m")
+        println(strWColor("--------------------print output after running command----------------------"))
         println(output)
-        println("\033[1;31m--------------------finished.----------------------\033[0m")
+        println(strWColor("--------------------finished.----------------------"))
 
         def invertoryData = readFile(file: getInvertoriesPath(output), encoding: "UTF-8")
         guest = InetAddress.getByName(invertoryData.split("all")[-1].split("]")[-1].split("=")[-1].trim()).getHostAddress()
-        println("Guest ip address is " + guest)
+        println(strWColor("--------------------Guest ip address is " + guest + "----------------------"))
     }
 
     stage("Clone"){
         deleteDir()
-        def autoBranch = "rhel-" + AUTO_BRANCH_VERSION + "-"
-        if (ARCH == "x86_64"){
-            autoBranch += "verify"
-        }else{
-            autoBranch += ARCH
-        }
-        println("auto branch is :" + autoBranch)
-
+        // TODO: the variable for multiarch
+        def autoBranch = "main"
+        println(strWColor("--------------------auto branch is :" + autoBranch + "----------------------"))
+        //Use local repositories as we can control the automation version
         checkout([
                 $class: 'GitSCM',
                 branches: [[name: autoBranch]],
-                userRemoteConfigs: [[url: 'https://github.com/yunmingyang/cockpit.git']],
+                userRemoteConfigs: [[url: 'https://github.com/yunmingyang/cockpit-machines.git']],
                 extensions: [
                     [$class: 'CloneOption', shallow: true, noTags: true, depth: 1, timeout: 30]
                 ]
             ])
 
-        checkout([
-                $class: 'GitSCM',
-                branches: [[name: 'master']],
-                userRemoteConfigs: [[url: 'https://github.com/cockpit-project/bots.git']],
-                extensions: [
-                    [$class: 'CloneOption', shallow: true, noTags: true, depth: 1, timeout: 30],
-                    [$class: 'RelativeTargetDirectory', relativeTargetDir: WORKSPACE + '/bots']
-                ]
-            ])
+    }
+    stage("make"){
+        sh(script: "make test/common && " + 
+                   "make src/lib/cockpit-po-plugin.js && " +
+                   "make bots && " +
+                   "make node_modules/.bin/webpack")
     }
 
     stage("Npm install"){
         def registry = NPM_REGISTRY ? " --registry " + NPM_REGISTRY : "" 
-
-        sh(script: "npm install --loglevel verbose" + registry)
+        sh(script: "npm install " + registry)
     }
 
     stage("Run testsuite"){
-        println("--------------------check browsers versions----------------------")
+        println(strWColor("--------------------check browsers versions----------------------"))
         sh(script: "google-chrome --version && firefox --version")
 
-        println("--------------------create results directory----------------------")
+        println(strWColor("--------------------create results directory----------------------"))
         testSuiteResultPath = WORKSPACE + "/" + composeId + "_" + ARCH + "_" + RandomStringUtils.random(10, true, true)
         sh(script: "mkdir " + testSuiteResultPath)
-        println("testSuiteResultPath is " + testSuiteResultPath)
+        println(strWColor("testSuiteResultPath is " + testSuiteResultPath)
 
-        print("--------------------run verify-* test on chrome--------------------")
-        def runCmd = String.format("%s && TEST_OS=%s %s/test/verify/check-machines --machine=%s | tee %s",
-                                   enableVenv,
-                                   OS,
-                                   WORKSPACE,
-                                   guest,
-                                   testSuiteResultPath + "/chrome.log")
-        sh(script: runCmd)
+        for(def i in findFils(glob: "test/check-machines-*")){
+            println(strWColor("--------------------run " + i.name + " on chrome--------------------"))
+            sh(script: String.format("%s && TEST_OS=%s %s/%s --machine=%s | tee %s",
+                                     enableVenv,
+                                     OS,
+                                     WORKSPACE,
+                                     i.toString(),
+                                     guest,
+                                     testSuiteResultPath + "/chrome.log"))
 
-        print("-------------------run verify-* test on firefox--------------------")
-        runCmd = String.format("%s && TEST_OS=%s TEST_OS=rhel-8-4 TEST_BROWSER=firefox %s/test/verify/check-machines --machine=%s | tee %s",
-                               enableVenv,
-                               OS,
-                               WORKSPACE,
-                               guest,
-                               testSuiteResultPath + "/firefox.log")
-        sh(script: runCmd)
+            println(strWColor("-------------------run" + i.name + " on firefox--------------------"))
+            sh(script: String.format("%s && TEST_OS=%s TEST_BROWSER=firefox %s/%s --machine=%s | tee %s",
+                                     enableVenv,
+                                     OS,
+                                     WORKSPACE,
+                                     i.toString(),
+                                     guest,
+                                     testSuiteResultPath + "/firefox.log"))
+        }
     }
 
     stage("Upload"){
@@ -144,6 +142,6 @@ node('jslave-cockpit-machines'){
         def resURL = String.format("http://%s/results/iscsi/cockpit-machines/%s",
                                    RES_HOST,
                                    testSuiteResultPath.split("/")[-1])
-        println("please check the log at " + resURL)
+        println(strWColor("please check the log at " + resURL))
     }
 }
