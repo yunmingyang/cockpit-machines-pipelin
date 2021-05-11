@@ -6,6 +6,10 @@ import org.apache.commons.lang3.RandomStringUtils
 def guest
 def composeId
 def testSuiteResultPath
+def RES_HOST
+def RES_PATH
+def TOOLS_HOME = "/root"
+def OS = JOB_NAME.split("pipeline-")[-1].toLowerCase()
 def enableVenv = String.format("source %s/cockpit-venv/bin/activate",
                                TOOLS_HOME)
 def linchpinWorkspace = String.format("%s/linchpin-workspace", TOOLS_HOME)
@@ -24,9 +28,30 @@ String strWColor(String str){
     return "\033[1;31m" + str + "\033[0m")
 }
 
+properties([
+    parameters([
+        string(name: 'COMPOSE_ID', description: "Compose id for manual"),
+        string(name: 'BRANCH', description: "Select branch for manual"),
+        choice(name: 'ARCH', choices: ['x86_64', 's390x', 'ppc64le'], description: "ARCH for provision")
+    ])
+    //TODO: pipelineTrigger
+])
+
 node('jslave-cockpit-machines'){
     ansiColor('xterm'){
         println(strWColor("--------------------enable ansiColor with xterm----------------------"))
+    }
+
+    stage("Read config"){
+        def config = readJSON(file: "/root/job_config.json")
+        RES_HOST = config["res_host"]
+        RES_PATH = config["res_path"]
+
+        println(strWColor("TOOLS_HOME is: " + TOOLS_HOME))
+        println(strWColor("RES_HOST is: " + RES_HOST))
+        println(strWColor("RES_PATH is: " + RES_PATH))
+        println(strWColor("OS is: " + OS))
+        println(strWColor("ARCH is: " + ARCH))
     }
 
     stage("Pre-operations"){
@@ -81,25 +106,20 @@ node('jslave-cockpit-machines'){
         println(strWColor("--------------------auto branch is :" + autoBranch + "----------------------"))
         //Use local repositories as we can control the automation version
         checkout([
-                $class: 'GitSCM',
-                branches: [[name: autoBranch]],
-                userRemoteConfigs: [[url: 'https://github.com/yunmingyang/cockpit-machines.git']],
-                extensions: [
-                    [$class: 'CloneOption', shallow: true, noTags: true, depth: 1, timeout: 30]
-                ]
-            ])
-
+            $class: 'GitSCM',
+            branches: [[name: autoBranch]],
+            userRemoteConfigs: [[url: 'https://github.com/yunmingyang/cockpit-machines.git']],
+            extensions: [
+                [$class: 'CloneOption', shallow: true, noTags: true, depth: 1, timeout: 30]
+            ]
+        ])
     }
+
     stage("make"){
         sh(script: "make test/common && " + 
                    "make src/lib/cockpit-po-plugin.js && " +
                    "make bots && " +
                    "make node_modules/.bin/webpack")
-    }
-
-    stage("Npm install"){
-        def registry = NPM_REGISTRY ? " --registry " + NPM_REGISTRY : "" 
-        sh(script: "npm install " + registry)
     }
 
     stage("Run testsuite"){
@@ -119,7 +139,7 @@ node('jslave-cockpit-machines'){
                                      WORKSPACE,
                                      i.toString(),
                                      guest,
-                                     testSuiteResultPath + "/chrome.log"))
+                                     testSuiteResultPath + "/" + i.name))
 
             println(strWColor("-------------------run" + i.name + " on firefox--------------------"))
             sh(script: String.format("%s && TEST_OS=%s TEST_BROWSER=firefox %s/%s --machine=%s | tee %s",
@@ -128,7 +148,7 @@ node('jslave-cockpit-machines'){
                                      WORKSPACE,
                                      i.toString(),
                                      guest,
-                                     testSuiteResultPath + "/firefox.log"))
+                                     testSuiteResultPath + "/" + i.name))
         }
     }
 
